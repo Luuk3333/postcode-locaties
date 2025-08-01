@@ -158,40 +158,46 @@
 			return `${digits}${firstLetter}${secondLetter}`;
 		}
 
-		let coords_index = 0;
-		let bitmap_index = 0;
+		function postcodeToGeohash(postcode) {
+			let coords_index = 0;
+			let bitmap_index = 0;
 
-		while (bitmap_index < bitmapBits.length) {
-			const bit = bitmapBits[bitmap_index];
-			const postcode = indexToPostcode(bitmap_index);
-			if (postcode === input_postcode) {
-				if (!bit) {
-					info_el.innerHTML += `❓<br>
-						geohash: unavailable<br>
-						lat, lon: unavailable<br>
-					`;
-					break;
+			while (bitmap_index < bitmapBits.length) {
+				const bit = bitmapBits[bitmap_index];
+				const index_postcode = indexToPostcode(bitmap_index);
+				if (index_postcode === postcode) {
+					if (!bit) {
+						return null;
+					}
+					console.log({bitmap_index: bitmap_index, postcode: index_postcode, value: bit, coords_index: bit ? coords_index : null});
+
+					// Get coords hash
+					const char0 = coordsBytes[coords_index*4+0]
+					const char1 = coordsBytes[coords_index*4+1]
+					const char2 = coordsBytes[coords_index*4+2]
+					const char3 = coordsBytes[coords_index*4+3]
+					return 'u1' + String.fromCharCode(char0, char1, char2, char3);
 				}
-				console.log({bitmap_index: bitmap_index, postcode: postcode, value: bit, coords_index: bit ? coords_index : null});
-
-				// Get coords hash
-				const char0 = coordsBytes[coords_index*4+0]
-				const char1 = coordsBytes[coords_index*4+1]
-				const char2 = coordsBytes[coords_index*4+2]
-				const char3 = coordsBytes[coords_index*4+3]
-				const gh = 'u1' + String.fromCharCode(char0, char1, char2, char3);
-				const [latitude, longitude] = geohash.decode(gh);
-
-				results(latitude, longitude);
-				info_el.innerHTML += `✔️<br>
-					geohash: <a href="https://geohash.jorren.nl/#${gh}" target="_blank">${gh}</a><br>
-					lat, lon: <a href="http://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}" target="_blank">${latitude}, ${longitude}</a>
-				`;
-				break;
+				if (bit === 1) coords_index++;
+				bitmap_index++;
 			}
-			if (bit === 1) coords_index++;
-			bitmap_index++;
 		}
+
+		const gh = postcodeToGeohash(input_postcode);
+		if (gh === null) {
+			info_el.innerHTML += `❓<br>
+				geohash: unavailable<br>
+				lat, lon: unavailable<br>
+			`;
+			return;
+		}
+
+		const [lat, lon] = geohash.decode(gh);
+		results(lat, lon);
+		info_el.innerHTML += `✔️<br>
+			geohash: <a href="https://geohash.jorren.nl/#${gh}" target="_blank">${gh}</a><br>
+			lat, lon: <a href="http://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}" target="_blank">${lat}, ${lon}</a>
+		`;
 	}
 
 	function demo(postcode) {
