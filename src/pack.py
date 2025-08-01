@@ -1,7 +1,7 @@
 import csv
 from tqdm import tqdm
-import gzip
-import shutil
+import geohash
+from bitarray import bitarray
 
 with open('../preprocess/postcodes.csv') as csvfile:
 	csvreader = csv.reader(csvfile)
@@ -23,7 +23,7 @@ rows_dict = {item[0]: item[1:] for item in rows}
 ALPHABET = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 postcodes = []
 
-for a in range(0, 9+1):
+for a in range(1, 9+1):
 	for b in range(0, 9+1):
 		for c in range(0, 9+1):
 			for d in range(0, 9+1):
@@ -31,38 +31,55 @@ for a in range(0, 9+1):
 					for f in range(0, 26):
 						postcode = f'{a}{b}{c}{d}{ALPHABET[e]}{ALPHABET[f]}'
 						postcodes.append(postcode)
-print(f'Generated {len(postcodes):,} postcodes.')
+print(f'Generated {len(postcodes):,} postcodes ({postcodes[0]} through {postcodes[-1]}).')
 
-start = None
-lines = [''] * len(postcodes)
+bitcount = 0
+bits = 0
+bit_index = 0
+bitmap_bytes = bytearray()
+coords_bytes = bytearray()
 
-i = 0
-for postcode in tqdm(postcodes):
-	row = rows_dict.get(postcode)
-	if row is not None:
-		if start is None:
-			start = postcode
-		lines[i] = row[2][0:5].replace('.', '') # 4.12345 --> 4123
-		lines[i] += row[3][1:6].replace('.', '') # 52.67891 --> 2678
-	i += 1
+def check_valid_postcode(postcode):
+	return postcode in rows_dict.keys()
 
-# remove trailing non-existing postcodes
-while lines and lines[-1] == "":
-	lines.pop()
+for postcode in postcodes:
+	if check_valid_postcode(postcode):
+		bits |= (1 << (7 - bit_index))
 
-with open("pack.txt", "w") as file:
-	for line in lines:
-		if len(line) > 0:
-			file.write(line + '\n')
-		else:
-			file.write('\n')
+		# Add the 4-char string for valid postcode
+		row = rows_dict.get(postcode)
+		lat,lon = row[3], row[2]
+		hash = geohash.encode(float(lat), float(lon), precision=6)[2:]
+		coords_bytes.extend(hash.encode('ascii'))
+
+	bit_index += 1
+	bitcount += 1
+
+	if bit_index == 8:
+		bitmap_bytes.append(bits)
+		bits = 0
+		bit_index = 0
+
+# Add remaining bits
+if bit_index > 0:
+	bitmap_bytes.append(bits)
+
+with open('bitmap.bin', 'wb') as file:
+	file.write(bitmap_bytes)
+with open('coords.bin', 'wb') as file:
+	file.write(coords_bytes)
 
 import os
 def runcmd(cmd):
 	print('\n', cmd)
 	os.system(cmd)
 
-runcmd("ls -lsah pack.txt")
-runcmd("gzip --keep --verbose -9 --force pack.txt && ls -lsah pack.txt.gz")
-# runcmd("brotli pack.txt --output=pack.txt.br --force && ls -lsah pack.txt.br")
-# runcmd("zstd pack.txt -o pack.txt.zst --ultra --force && ls -lsah pack.txt.zst")
+runcmd("ls -lsah bitmap.bin")
+runcmd("gzip --keep --verbose -9 --force bitmap.bin && ls -lsah bitmap.bin.gz")
+runcmd("brotli bitmap.bin --output=bitmap.bin.br --force && ls -lsah bitmap.bin.br")
+# runcmd("zstd bitmap.bin -o bitmap.bin.zst --ultra --force && ls -lsah bitmap.bin.zst")
+
+runcmd("ls -lsah coords.bin")
+runcmd("gzip --keep --verbose -9 --force coords.bin && ls -lsah coords.bin.gz")
+runcmd("brotli coords.bin --output=coords.bin.br --force && ls -lsah coords.bin.br")
+# runcmd("zstd coords.bin -o coords.bin.zst --ultra --force && ls -lsah coords.bin.zst")

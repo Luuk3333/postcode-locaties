@@ -1,0 +1,3 @@
+bitarray==3.6.0
+python-geohash==0.8.5
+tqdm==4.67.1

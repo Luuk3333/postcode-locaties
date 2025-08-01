@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Demo</title>
+</head>
+<body>
+
+<h1>Vind rijksmusea</h1>
+<p>Voer een postcode in en krijg te zien welke rijksmusea dichtbij zijn.</p>
+
+<label>Postcode</label>
+<input
+	type="text"
+	id="postcode"
+	placeholder="1234AB"
+	title="Postcode"
+	maxlength="7"
+	size="7"
+	autocomplete="off"
+	autocapitalize="on">
+<button onclick="zoek()" id="zoek">Zoek</button>
+<br>
+<button onclick="demo('1118AP')">Schipholtoren</button>
+<button onclick="demo('3512JE')">Domtoren</button>
+<button onclick="demo('9712GJ')">Martinitoren</button>
+
+<div class="info"></div>
+<ul id="results"></ul>
+
+<script src=" https://cdn.jsdelivr.net/npm/js-geohash@1.0.0/geohash.min.js "></script>
+<script>
+	const results_el = document.querySelector('#results');
+
+	const locaties = [
+		{naam: 'Rijksmuseum Amsterdam', coords: [52.359969,4.885325]},
+		{naam: 'Van Gogh Museum', coords: [52.358461,4.881278]},
+		{naam: 'Het Scheepvaartmuseum', coords: [52.371389,4.914722]},
+		{naam: 'Nationaal Museum Paleis Het Loo', coords: [52.234167,5.945833 ]},
+		{naam: 'Nederlands Openluchtmuseum', coords: [52.009444,5.906389 ]},
+		{naam: 'Koninklijk Kabinet van Schilderijen Mauritshuis', coords: [52.080278,4.314167 ]},
+		{naam: 'Museum Meermanno', coords: [52.083611,4.316944 ]},
+		{naam: 'Zuiderzeemuseum', coords: [52.703667,5.297222 ]},
+		{naam: 'Rijksmuseum Twenthe', coords: [52.227778,6.896944 ]},
+		{naam: 'Wereldmuseum Leiden', coords: [52.163056,4.4825 ]},
+		{naam: 'Rijksmuseum van Oudheden', coords: [52.158333,4.485833 ]},
+		{naam: 'Rijksmuseum Boerhaave', coords: [52.161389,4.488889 ]},
+		{naam: 'Nationaal Natuurhistorisch Museum Naturalis', coords: [52.164722,4.475278 ]},
+		{naam: 'Muiderslot', coords: [52.334231,5.071806 ]},
+		{naam: 'Kröller-Müller Museum', coords: [52.095942,5.816925 ]},
+		{naam: 'Slot Loevestein', coords: [51.816389,5.021389 ]},
+		{naam: 'Museum Catharijneconvent', coords: [52.087222,5.124167 ]},
+		{naam: 'Museum de Gevangenpoort', coords: [52.079667,4.310281]},
+	]
+
+	function haversine(lat1, lon1, lat2, lon2) {
+		function deg2rad(degrees) {
+			return degrees * (Math.PI / 180);
+		}
+		const R = 6371;
+		const dLat = deg2rad(lat2 - lat1);
+		const dLon = deg2rad(lon2 - lon1);
+
+		const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+				Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+				Math.sin(dLon / 2) * Math.sin(dLon / 2);
+		const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+		return c * R;
+	}
+
+	function results(inputLat,inputLon) {
+		// Calculate distances
+		locaties.forEach((loc) => {
+			const [lat, lon] = loc.coords;
+			loc.distance = haversine(inputLat, inputLon, lat, lon);
+		});
+
+		// Sort by distance
+		locaties.sort((a, b) => a.distance - b.distance);
+
+		// Show results
+		results_el.innerHTML = '';
+		locaties.forEach(loc => {
+			distance_str = loc.distance < 1 ? '< 1' : loc.distance.toFixed(1);
+			results_el.innerHTML += `<li>
+				<b>${loc.naam}</b><br>${distance_str} km<br>
+				<a href="http://www.openstreetmap.org/?mlat=${loc.coords[0]}&mlon=${loc.coords[1]}" target="_blank">Kaart</a> | <a href="https://www.openstreetmap.org/directions?route=${inputLat}%2C${inputLon}%3B${loc.coords[0]}%2C${loc.coords[1]}" target="_blank">Route</a>
+				</li>`;
+		});
+	}
+
+	function zoek() {
+		results_el.innerHTML = '';
+		const info_el = document.querySelector('.info');
+		const input_el = document.querySelector('input#postcode');
+		info_el.innerHTML = '';
+
+		const postcode_regex = new RegExp("^(\\d{4})\\s?([A-Z]{2})$", "gi"); // https://regex101.com/r/2vSYX9/1
+		var match = postcode_regex.exec(input_el.value);
+		if (!match) {
+			return;
+		}
+		const input_postcode = match[1] + match[2].toUpperCase();
+		input_el.value = input_postcode;
+		info_el.innerHTML = `postcode: <a href="https://www.openstreetmap.org/search?query=${input_postcode}" target="_blank">${input_postcode}</a>`;
+
+		// TODO: accommodate PC4 input
+
+		fetch('src/bitmap.bin')
+			.then(response => response.arrayBuffer())
+			.then(buffer => {
+				const byteArray = new Uint8Array(buffer);
+
+				const bits = [];
+				for (const byte of byteArray) {
+					for (let bit = 7; bit >= 0; bit--) {
+						bits.push((byte >> bit) & 1);
+					}
+				}
+
+				function indexToPostcode(index) {
+					if (index < 0 || index >= 6084000) {
+						throw new Error("Index out of range");
+					}
+
+					const digitsIndex = Math.floor(index / 676); // 0 to 8999
+					const lettersIndex = index % 676;             // 0 to 675
+
+					// Convert digits index back to digits (1000 to 9999)
+					const digits = digitsIndex + 1000;
+
+					// Convert letters index back to two letters
+					const indexToLetter = (i) => String.fromCharCode('A'.charCodeAt(0) + i);
+
+					const firstLetterIndex = Math.floor(lettersIndex / 26);
+					const secondLetterIndex = lettersIndex % 26;
+
+					const firstLetter = indexToLetter(firstLetterIndex);
+					const secondLetter = indexToLetter(secondLetterIndex);
+
+					return `${digits}${firstLetter}${secondLetter}`;
+				}
+
+				let coords_index = 0;
+				let bitmap_index = 0;
+
+				while (bitmap_index < bits.length) {
+					const bit = bits[bitmap_index];
+					const postcode = indexToPostcode(bitmap_index);
+					if (postcode === input_postcode) {
+						if (!bit) {
+							info_el.innerHTML += `❓<br>
+								geohash: unavailable<br>
+								lat, lon: unavailable<br>
+							`;
+							break;
+						}
+						console.log({bitmap_index: bitmap_index, postcode: postcode, value: bit, coords_index: bit ? coords_index : null});
+
+						// Get coords hash
+						fetch('src/coords.bin')
+							.then(response2 => response2.arrayBuffer())
+							.then(buffer2 => {
+								const byteArray2 = new Uint8Array(buffer2);
+								const char0 = byteArray2[coords_index*4+0]
+								const char1 = byteArray2[coords_index*4+1]
+								const char2 = byteArray2[coords_index*4+2]
+								const char3 = byteArray2[coords_index*4+3]
+								const gh = 'u1' + String.fromCharCode(char0, char1, char2, char3);
+								const [latitude, longitude] = geohash.decode(gh);
+
+								results(latitude, longitude);
+								info_el.innerHTML += `✔️<br>
+									geohash: <a href="https://geohash.jorren.nl/#${gh}" target="_blank">${gh}</a><br>
+									lat, lon: <a href="http://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}" target="_blank">${latitude}, ${longitude}</a>
+								`;
+							})
+							.catch(err2 => {
+								console.error('Error loading coords.bin:', err2);
+							});
+						break;
+					}
+					if (bit === 1) coords_index++;
+					bitmap_index++;
+				}
+			})
+			.catch(err => {
+				console.error('Error loading bitmap.bin:', err);
+			});
+	}
+
+	function demo(postcode) {
+		document.querySelector('input#postcode').value = postcode;
+		document.querySelector('button#zoek').click();
+	}
+
+</script>
+
+<style>
+	li {
+		margin-bottom: 1rem;
+	}
+</style>
+
+</body>
+</html>
