@@ -140,11 +140,65 @@ async function PostcodeLocaties(options = {}) {
 		return 'u1' + String.fromCharCode(char0, char1, char2, char3);
 	}
 
+	/**
+	 * geohash.js
+	 * Geohash library for Javascript
+	 * (c) 2008 David Troy
+	 * Distributed under the MIT License
+	 * 
+	 * This file includes the functions refine_interval() and decodeGeoHash() from geohash.js.
+	 * Retrieved from https://github.com/davetroy/geohash-js/blob/master/geohash.js on 2025-08-02.
+	 */
+	const BITS = [16, 8, 4, 2, 1];
+	const BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz";
+	function refine_interval(interval, cd, mask) {
+		if (cd&mask)
+			interval[0] = (interval[0] + interval[1])/2;
+		else
+			interval[1] = (interval[0] + interval[1])/2;
+	}
+	function decodeGeoHash(geohash) {
+		var is_even = 1;
+		var lat = []; var lon = [];
+		lat[0] = -90.0;  lat[1] = 90.0;
+		lon[0] = -180.0; lon[1] = 180.0;
+		lat_err = 90.0;  lon_err = 180.0;
+
+		for (i=0; i<geohash.length; i++) {
+			c = geohash[i];
+			cd = BASE32.indexOf(c);
+			for (j=0; j<5; j++) {
+				mask = BITS[j];
+				if (is_even) {
+					lon_err /= 2;
+					refine_interval(lon, cd, mask);
+				} else {
+					lat_err /= 2;
+					refine_interval(lat, cd, mask);
+				}
+				is_even = !is_even;
+			}
+		}
+		lat[2] = (lat[0] + lat[1])/2;
+		lon[2] = (lon[0] + lon[1])/2;
+
+		return { latitude: lat, longitude: lon};
+	}
+
+	function geohashToLatLon(geohash) {
+		const result = decodeGeoHash(geohash);
+		// {
+		//     latitude:  [minLat, maxLat, centerLat],
+		//     longitude: [minLon, maxLon, centerLon],
+		// }
+		return [result.latitude[2], result.longitude[2]];
+	}
+
 	var pcloc = Object();
 
 	pcloc.lookup = ((postcode) => {
 		const gh = postcodeToGeohash(postcode);
-		const [lat, lon] = geohash.decode(gh);
+		const [lat, lon] = geohashToLatLon(gh);
 		return {
 			gh,
 			lat,
