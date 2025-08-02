@@ -1,9 +1,25 @@
 # pack.py
-The script [`pack.py`](pack.py) reads the GeoPackage (GPKG) file from CBS and packs the location data into binary files. It creates an intermediate `postcodes.csv` file for faster runs.
+The script [`pack.py`](pack.py) reads a GeoPackage (GPKG) file from CBS and packs the location data into binary files. It creates an intermediate `postcodes.csv` file for faster runs.
 
 ## Steps to use
+### 1. Source data
+CBS provides postcode data in a GeoPackage (GPKG) file which includes polygons of each postcode. This script reads this data, calculates polygon centroids and outputs an intermediate `postcodes.csv` file.
+
+If you want to bring your own postcode data: place it in `postcodes.csv` in the following format and this script will use that instead of CBS data:
+```csv
+postcode6,lat,lon
+1034XZ,52.40376675629908,4.907777651195642
+1058EH,52.36149008188852,4.844611782197562
+1082MD,52.33777631760533,4.87075088206934
+...
+```
+
+Otherwise:
 1. Download the most recent `volledige postcode (PC6)` from CBS available on this page: https://www.cbs.nl/nl-nl/dossier/nederland-regionaal/geografische-data/gegevens-per-postcode.
 2. Unzip and place `cbs_pc6_2024_v1.gpkg` (or a more recent year) in the same folder as `pack.py`.
-3. Set up virtual env. Install packages with `pip install -r requirements.txt`.
-3. Set `input_file` in [`pack.py`](pack.py).
-4. Run `python pack.py`.
+3. Set `input_file` in [`pack.py`](pack.py) to match the filename.
+
+
+### 2. Generating binaries
+1. Set up virtual env. Install packages with `pip install -r requirements.txt`.
+2. Run `python pack.py`. The data will be stored as two .bin files, along with the same data compressed as two .bin.gz files.

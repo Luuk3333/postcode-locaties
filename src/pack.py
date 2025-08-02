@@ -20,17 +20,15 @@ if not os.path.isfile('postcodes.csv'):
 	print("  --> Calculating postcode centroids")
 	data_centroids = data.copy()
 	data_centroids['centroid'] = data_centroids.geometry.centroid
-	data_centroids['x_rd'] = data_centroids['centroid'].x
-	data_centroids['y_rd'] = data_centroids['centroid'].y
 
-	# Also output in WGS84
+	# Convert to WGS84
 	centroids_wgs84 = data_centroids.set_geometry('centroid').to_crs(epsg=4326)
-	data_centroids['lon'] = centroids_wgs84.geometry.x
 	data_centroids['lat'] = centroids_wgs84.geometry.y
+	data_centroids['lon'] = centroids_wgs84.geometry.x
 
 	output_csv = "postcodes.csv"
 	print(f'  --> Writing to {output_csv}')
-	csv_output = data_centroids[['postcode6', 'x_rd', 'y_rd', 'lon', 'lat']]
+	csv_output = data_centroids[['postcode6', 'lat', 'lon']]
 	csv_output.to_csv(output_csv, index=False)
 
 	print(f"  --> Exported {len(csv_output):,} rows to {output_csv}")
@@ -48,12 +46,12 @@ with open('postcodes.csv') as csvfile:
 print(f'Loaded {len(rows):,} postcodes.')
 
 for row in rows:
-	if not len(row[3].split('.')[0]) == 1:
-		raise ValueError("Error: a longitude does not have 1 digit before decimal!", row)
-	if not len(row[4].split('.')[0]) == 2:
-		raise ValueError("Error: a latitude does not have 2 digits before decimal!", row)
-	if not row[4].startswith('5'):
+	if not row[1].startswith('5'):
 		raise ValueError("Error: a latitude does not start with '5'!", row)
+	if not len(row[1].split('.')[0]) == 2:
+		raise ValueError("Error: a latitude does not have 2 digits before decimal!", row)
+	if not len(row[2].split('.')[0]) == 1:
+		raise ValueError("Error: a longitude does not have 1 digit before decimal!", row)
 
 rows_dict = {item[0]: item[1:] for item in rows}
 
@@ -85,7 +83,7 @@ for postcode in postcodes:
 
 		# Add the 4-char string for valid postcode
 		row = rows_dict.get(postcode)
-		lat,lon = row[3], row[2]
+		lat,lon = row[0], row[1]
 		hash = geohash.encode(float(lat), float(lon), precision=6)[2:]
 		coords_bytes.extend(hash.encode('ascii'))
 
