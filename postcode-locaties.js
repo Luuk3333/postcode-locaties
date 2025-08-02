@@ -218,7 +218,7 @@ async function PostcodeLocaties(options = {}) {
 			if (this.maxSize <= 0) return null;
 			const index = this.keys.indexOf(postcode);
 			if (index !== -1) {
-				return this.values[index];
+				return {value: this.values[index]};
 			}
 			return null;
 		}
@@ -229,13 +229,16 @@ async function PostcodeLocaties(options = {}) {
 	pcloc.lookupHistory = new LookupHistory(lookupHistorySize);
 
 	pcloc.lookup = ((postcode) => {
-		// Return from history if available
+		// Return geohash from history if available (can permit to calculate lat/long everytime because geohashToLatLon() is fast)
+		let gh;
 		const historyResult = pcloc.lookupHistory.get(postcode);
 		if (historyResult) {
-			return historyResult;
+			gh = historyResult.value; // Use .value so 'if (historyResult)' doesn't fail when geohash is null
 		}
-
-		const gh = postcodeToGeohash(postcode);
+		else {
+			gh = postcodeToGeohash(postcode);
+			pcloc.lookupHistory.add(postcode, gh);
+		}
 		if (gh === null) return null;
 
 		const [lat, lon] = geohashToLatLon(gh);
@@ -244,7 +247,6 @@ async function PostcodeLocaties(options = {}) {
 			lat,
 			lon
 		};
-		pcloc.lookupHistory.add(postcode, result);
 		return result;
 	});
 
