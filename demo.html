@@ -157,28 +157,30 @@ Voorbeelden:
 		}
 	}
 
-	let offset1000s_validcount = 0; // 1000AA - 1999ZZ
-	let offset2000s_validcount = 0; // 2000AA - 2999ZZ
-	let offset3000s_validcount = 0;
-	let offset4000s_validcount = 0;
-	let offset5000s_validcount = 0;
-	let offset6000s_validcount = 0;
-	let offset7000s_validcount = 0;
-	let offset8000s_validcount = 0;
+	const offset_valid_count = {
+		'1000s': 0, // 1000AA - 1999ZZ
+		'2000s': 0, // 2000AA - 2999ZZ
+		'3000s': 0,
+		'4000s': 0,
+		'5000s': 0,
+		'6000s': 0,
+		'7000s': 0,
+		'8000s': 0,
+	};
 
 	window.onload = async function() {
 		await fetchBinaries();
 
 		const start = performance.now();
 		for (let index = 0; index < 676000; index++) {
-			if (bitmapBits[index + 0*676000]) offset1000s_validcount++;
-			if (bitmapBits[index + 1*676000]) offset2000s_validcount++;
-			if (bitmapBits[index + 2*676000]) offset3000s_validcount++;
-			if (bitmapBits[index + 3*676000]) offset4000s_validcount++;
-			if (bitmapBits[index + 4*676000]) offset5000s_validcount++;
-			if (bitmapBits[index + 5*676000]) offset6000s_validcount++;
-			if (bitmapBits[index + 6*676000]) offset7000s_validcount++;
-			if (bitmapBits[index + 7*676000]) offset8000s_validcount++;
+			if (bitmapBits[index + 0*676000]) offset_valid_count['1000s']++;
+			if (bitmapBits[index + 1*676000]) offset_valid_count['2000s']++;
+			if (bitmapBits[index + 2*676000]) offset_valid_count['3000s']++;
+			if (bitmapBits[index + 3*676000]) offset_valid_count['4000s']++;
+			if (bitmapBits[index + 4*676000]) offset_valid_count['5000s']++;
+			if (bitmapBits[index + 5*676000]) offset_valid_count['6000s']++;
+			if (bitmapBits[index + 6*676000]) offset_valid_count['7000s']++;
+			if (bitmapBits[index + 7*676000]) offset_valid_count['8000s']++;
 		}
 		document.querySelector('.info').innerHTML += `Counting valid postcodes took ${performance.now() - start} ms.`;
 	};
@@ -224,43 +226,13 @@ Voorbeelden:
 		function postcodeToGeohash(postcode) {
 			let coords_index = 0;
 
+			// Sum count of prior valid postcodes
+			const offset_digit = parseInt(postcode[0], 10);
 			let offset_validsum = 0;
-			let offset_index = 0;
-			if (postcode.startsWith('1')) {
-				offset_validsum = 0;
-				offset_index = 0*676000;
-			}
-			if (postcode.startsWith('2')) {
-				offset_validsum = offset1000s_validcount;
-				offset_index = 1*676000;
-			}
-			if (postcode.startsWith('3')) {
-				offset_validsum = offset1000s_validcount + offset2000s_validcount;
-				offset_index = 2*676000;
-			}
-			if (postcode.startsWith('4')) {
-				offset_validsum = offset1000s_validcount + offset2000s_validcount + offset3000s_validcount
-				offset_index = 3*676000;
-			}
-			if (postcode.startsWith('5')) {
-				offset_validsum = offset1000s_validcount + offset2000s_validcount + offset3000s_validcount + offset4000s_validcount
-				offset_index = 4*676000;
-			}
-			if (postcode.startsWith('6')) {
-				offset_validsum = offset1000s_validcount + offset2000s_validcount + offset3000s_validcount + offset4000s_validcount + offset5000s_validcount
-				offset_index = 5*676000;
-			}
-			if (postcode.startsWith('7')) {
-				offset_validsum = offset1000s_validcount + offset2000s_validcount + offset3000s_validcount + offset4000s_validcount + offset5000s_validcount + offset6000s_validcount
-				offset_index = 6*676000;
-			}
-			if (postcode.startsWith('8')) {
-				offset_validsum = offset1000s_validcount + offset2000s_validcount + offset3000s_validcount + offset4000s_validcount + offset5000s_validcount + offset6000s_validcount + offset7000s_validcount
-				offset_index = 7*676000;
-			}
-			if (postcode.startsWith('9')) {
-				offset_validsum = offset1000s_validcount + offset2000s_validcount + offset3000s_validcount + offset4000s_validcount + offset5000s_validcount + offset6000s_validcount + offset7000s_validcount + offset8000s_validcount
-				offset_index = 8*676000;
+			let offset_index = (offset_digit - 1) * 676000;
+			for (let i = 1; i < offset_digit; i++) {
+				const key = `${i}000s`;
+				offset_validsum += offset_valid_count[key] || 0;
 			}
 
 			const index = postcodeToIndex(postcode);
