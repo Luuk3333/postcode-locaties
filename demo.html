@@ -224,7 +224,10 @@ Voorbeelden:
 		}
 
 		function postcodeToGeohash(postcode) {
-			let coords_index = 0;
+			// Skip postcodes lower than 1000AA like 0123AB
+			if (postcode[0] === '0') {
+				return null;
+			}
 
 			// Sum count of prior valid postcodes
 			const offset_digit = parseInt(postcode[0], 10);
@@ -236,6 +239,7 @@ Voorbeelden:
 			}
 
 			const index = postcodeToIndex(postcode);
+			let coords_index = 0;
 
 			// Count postcodes with coordinate in current thousand block
 			for (let i = offset_index; i < index; i++) {
@@ -243,10 +247,10 @@ Voorbeelden:
 			}
 
 			const bit = bitmapBits[index];
+			console.log({bitmap_index: index, postcode: postcode, value: bit, coords_index: bit ? (offset_validsum + coords_index) : null});
 			if (!bit) {
 				return null;
 			}
-			console.log({bitmap_index: index, postcode: postcode, value: bit, coords_index: bit ? (offset_validsum + coords_index) : null});
 			const char0 = coordsBytes[(offset_validsum + coords_index)*4 + 0]
 			const char1 = coordsBytes[(offset_validsum + coords_index)*4 + 1]
 			const char2 = coordsBytes[(offset_validsum + coords_index)*4 + 2]
