@@ -150,11 +150,11 @@ Voorbeelden:
 		}
 
 		console.log("Result:", result);
-		const {gh, lat, lon} = result;
+		const {geohash, lat, lon} = result;
 
 		results(lat, lon);
 		info_el.innerHTML += ` ✔️<br>
-			geohash: <a href="https://geohash.jorren.nl/#${gh}" target="_blank">${gh}</a><br>
+			geohash: <a href="https://geohash.jorren.nl/#${geohash}" target="_blank">${geohash}</a><br>
 			lat, lon: <a href="http://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}" target="_blank">${lat}, ${lon}</a>
 			<br>
 		`;
