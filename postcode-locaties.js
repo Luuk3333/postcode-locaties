@@ -195,24 +195,44 @@ async function PostcodeLocaties(options = {}) {
 		return [result.latitude[2], result.longitude[2]];
 	}
 
+	class LookupHistory {
+		constructor(maxSize) {
+			this.maxSize = maxSize;
+			this.keys = [];
+			this.values = [];
+		}
+
+		add(postcode, item) {
+			if (this.maxSize <= 0) return;
+			this.keys.push(postcode);
+			this.values.push(item);
+
+			if (this.keys.length > this.maxSize) {
+				// remove oldest item
+				this.keys.shift();
+				this.values.shift();
+			}
+		}
+
+		get(postcode) {
+			if (this.maxSize <= 0) return null;
+			const index = this.keys.indexOf(postcode);
+			if (index !== -1) {
+				return this.values[index];
+			}
+			return null;
+		}
+	}
+
 	var pcloc = Object();
 
-	pcloc.lookupHistoryKeys = [];
-	pcloc.lookupHistoryValues = [];
-	pcloc.addToHistory = ((postcode, item) => {
-		pcloc.lookupHistoryKeys.push(postcode);
-		pcloc.lookupHistoryValues.push(item);
-		if (pcloc.lookupHistoryKeys.length > lookupHistorySize) {
-			pcloc.lookupHistoryKeys.shift(); // remove oldest item
-			pcloc.lookupHistoryValues.shift();
-		}
-	});
+	pcloc.lookupHistory = new LookupHistory(lookupHistorySize);
 
 	pcloc.lookup = ((postcode) => {
 		// Return from history if available
-		const historyIndex = pcloc.lookupHistoryKeys.indexOf(postcode);
-		if (historyIndex !== -1) {
-			return pcloc.lookupHistoryValues[historyIndex];
+		const historyResult = pcloc.lookupHistory.get(postcode);
+		if (historyResult) {
+			return historyResult;
 		}
 
 		const gh = postcodeToGeohash(postcode);
@@ -223,7 +243,7 @@ async function PostcodeLocaties(options = {}) {
 			lat,
 			lon
 		};
-		pcloc.addToHistory(postcode, result);
+		pcloc.lookupHistory.add(postcode, result);
 		return result;
 	});
 
