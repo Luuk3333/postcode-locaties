@@ -7,11 +7,14 @@
 </head>
 <body>
 
-<h1>Vind rijksmusea</h1>
-<p>Voer een postcode in en krijg te zien welke rijksmusea dichtbij zijn.</p>
+<h1>Vind Rijksmusea</h1>
+<p>Vul een postcode in en krijg te zien welke rijksmusea dichtbij zijn.</p>
+<p>De postcode blijft in de browser en wordt niet verzonden over het internet.</p>
+
+<br>
 
 <form>
-	<label for="postcode">Postcode</label>
+	<label for="postcode">Postcode:</label>
 	<input
 		type="text"
 		id="postcode"
@@ -23,22 +26,33 @@
 		autocomplete="off"
 		autocapitalize="on">
 	<button id="zoek" type="submit">Zoek</button>
-	<br>
-	<button onclick="demo('1118AP')">Schipholtoren</button>
-	<button onclick="demo('3512JE')">Domtoren</button>
-	<button onclick="demo('9712GJ')">Martinitoren</button>
+	<button id="reset" type="reset">Reset</button>
 </form>
+<br>
+Voorbeelden:
+<button onclick="demo('1118AP')">Schipholtoren</button>
+<button onclick="demo('3512JE')">Domtoren</button>
+<button onclick="demo('9712GJ')">Martinitoren</button>
+
+<hr>
 
 <div class="info"></div>
 <ul id="results"></ul>
 
 <script src=" https://cdn.jsdelivr.net/npm/js-geohash@1.0.0/geohash.min.js "></script>
 <script>
+	const input_el = document.querySelector('input#postcode');
+	const info_el = document.querySelector('.info');
 	const results_el = document.querySelector('#results');
 
 	document.querySelector('form').addEventListener('submit', function(event) {
 		event.preventDefault();
 		zoek();
+	});
+
+	document.querySelector('form').addEventListener('reset', function(event) {
+		info_el.innerHTML = '';
+		results_el.innerHTML = '';
 	});
 
 	const locaties = [
@@ -171,8 +185,6 @@
 
 	function zoek() {
 		results_el.innerHTML = '';
-		const info_el = document.querySelector('.info');
-		const input_el = document.querySelector('input#postcode');
 		info_el.innerHTML = '';
 
 		const value = input_el.value.trim();
@@ -275,7 +287,7 @@
 		const lookup_ms = performance.now() - start;
 
 		if (gh === null) {
-			info_el.innerHTML += `❓<br>
+			info_el.innerHTML += ` ❓<br>
 				geohash: unavailable<br>
 				lat, lon: unavailable<br>
 			`;
@@ -284,7 +296,7 @@
 
 		const [lat, lon] = geohash.decode(gh);
 		results(lat, lon);
-		info_el.innerHTML += `✔️<br>
+		info_el.innerHTML += ` ✔️<br>
 			geohash: <a href="https://geohash.jorren.nl/#${gh}" target="_blank">${gh}</a><br>
 			lat, lon: <a href="http://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}" target="_blank">${lat}, ${lon}</a>
 			<br>
@@ -300,6 +312,9 @@
 </script>
 
 <style>
+	body {
+		padding-bottom: 3rem;
+	}
 	li {
 		margin-bottom: 1rem;
 	}
