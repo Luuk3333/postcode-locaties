@@ -102,17 +102,38 @@
 	let bitmapBits = null;
 	let coordsBytes = null;
 
-	async function fetchBinaries() {
-		async function fetchBinary(url) {
-			return fetch(url)
-				.then(response => response.arrayBuffer())
-				.then(buffer => new Uint8Array(buffer));
-		}
+	const isGzipSupported = typeof DecompressionStream === "function";
 
-		[bitmapBytes, coordsBytes] = await Promise.all([
-			fetchBinary('src/bitmap.bin'),
-			fetchBinary('src/coords.bin')
-		]);
+	async function decompressGzip(arrayBuffer) {
+		const ds = new DecompressionStream("gzip");
+		const decompressedStream = new Response(
+			new Blob([arrayBuffer]).stream().pipeThrough(ds)
+		);
+		return await decompressedStream.arrayBuffer();
+	}
+
+	async function fetchBinary(url, isGzip) {
+		const response = await fetch(url);
+		const buffer = await response.arrayBuffer();
+		const data = isGzip ? await decompressGzip(buffer) : buffer;
+		return new Uint8Array(data);
+	}
+
+	async function fetchBinaries() {
+		let bitmapBytes = null;
+
+		if (isGzipSupported) {
+			[bitmapBytes, coordsBytes] = await Promise.all([
+				fetchBinary('src/bitmap.bin.gz', true),
+				fetchBinary('src/coords.bin.gz', true)
+			]);
+		}
+		else {
+			[bitmapBytes, coordsBytes] = await Promise.all([
+				fetchBinary('src/bitmap.bin', false),
+				fetchBinary('src/coords.bin', false)
+			]);
+		}
 
 		bitmapBits = [];
 		for (const byte of bitmapBytes) {
