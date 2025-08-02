@@ -8,7 +8,8 @@ async function PostcodeLocaties(options = {}) {
 		coordsFile = {
 			compressed: "coords.bin.gz",
 			uncompressed: "coords.bin",
-		}
+		},
+		lookupHistorySize = 10,
 	} = options;
 
 	const isGzipSupported = typeof DecompressionStream === "function";
@@ -196,14 +197,34 @@ async function PostcodeLocaties(options = {}) {
 
 	var pcloc = Object();
 
+	pcloc.lookupHistoryKeys = [];
+	pcloc.lookupHistoryValues = [];
+	pcloc.addToHistory = ((postcode, item) => {
+		pcloc.lookupHistoryKeys.push(postcode);
+		pcloc.lookupHistoryValues.push(item);
+		if (pcloc.lookupHistoryKeys.length > lookupHistorySize) {
+			pcloc.lookupHistoryKeys.shift(); // remove oldest item
+			pcloc.lookupHistoryValues.shift();
+		}
+	});
+
 	pcloc.lookup = ((postcode) => {
+		// Return from history if available
+		const historyIndex = pcloc.lookupHistoryKeys.indexOf(postcode);
+		if (historyIndex !== -1) {
+			return pcloc.lookupHistoryValues[historyIndex];
+		}
+
 		const gh = postcodeToGeohash(postcode);
 		const [lat, lon] = geohashToLatLon(gh);
-		return {
+
+		const result = {
 			gh,
 			lat,
 			lon
 		};
+		pcloc.addToHistory(postcode, result);
+		return result;
 	});
 
 	return pcloc;
