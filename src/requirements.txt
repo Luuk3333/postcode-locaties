@@ -1,3 +1,15 @@
 bitarray==3.6.0
+certifi==2025.7.14
+geopandas==1.1.1
+numpy==2.3.2
+packaging==25.0
+pandas==2.3.1
+pyogrio==0.11.0
+pyproj==3.7.1
+python-dateutil==2.9.0.post0
 python-geohash==0.8.5
+pytz==2025.2
+shapely==2.1.1
+six==1.17.0
 tqdm==4.67.1
+tzdata==2025.2
