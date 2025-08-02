@@ -192,32 +192,25 @@
 
 		// TODO: accommodate PC4 input
 
-		function indexToPostcode(index) {
-			if (index < 0 || index >= 6084000) {
-				throw new Error("Index out of range");
+		function postcodeToIndex(postcode) {
+			const digits = parseInt(postcode.toUpperCase().slice(0, 4), 10);
+			const firstLetter = postcode[4];
+			const secondLetter = postcode[5];
+
+			function letterToIndex(char) {
+				return char.charCodeAt(0) - 'A'.charCodeAt(0);
 			}
+			const firstLetterIndex = letterToIndex(firstLetter);
+			const secondLetterIndex = letterToIndex(secondLetter);
 
-			const digitsIndex = Math.floor(index / 676); // 0 to 8999
-			const lettersIndex = index % 676;             // 0 to 675
+			const lettersIndex = firstLetterIndex * 26 + secondLetterIndex;
+			const index = (digits - 1000) * 676 + lettersIndex;
 
-			// Convert digits index back to digits (1000 to 9999)
-			const digits = digitsIndex + 1000;
-
-			// Convert letters index back to two letters
-			const indexToLetter = (i) => String.fromCharCode('A'.charCodeAt(0) + i);
-
-			const firstLetterIndex = Math.floor(lettersIndex / 26);
-			const secondLetterIndex = lettersIndex % 26;
-
-			const firstLetter = indexToLetter(firstLetterIndex);
-			const secondLetter = indexToLetter(secondLetterIndex);
-
-			return `${digits}${firstLetter}${secondLetter}`;
+			return index;
 		}
 
 		function postcodeToGeohash(postcode) {
 			let coords_index = 0;
-			let index = 0;
 
 			let offset_validsum = 0;
 			let offset_index = 0;
@@ -258,24 +251,23 @@
 				offset_index = 8*676000;
 			}
 
-			for (let index = 0; index < 676000; index++) {
-				const bitmap_index = index + offset_index;
-				const bit = bitmapBits[bitmap_index];
-				const index_postcode = indexToPostcode(bitmap_index);
-				if (index_postcode === postcode) {
-					if (!bit) {
-						return null;
-					}
-					console.log({bitmap_index: bitmap_index, postcode: index_postcode, value: bit, coords_index: bit ? (offset_validsum + coords_index) : null});
-					// Get coords hash
-					const char0 = coordsBytes[(offset_validsum + coords_index)*4 + 0]
-					const char1 = coordsBytes[(offset_validsum + coords_index)*4 + 1]
-					const char2 = coordsBytes[(offset_validsum + coords_index)*4 + 2]
-					const char3 = coordsBytes[(offset_validsum + coords_index)*4 + 3]
-					return 'u1' + String.fromCharCode(char0, char1, char2, char3);
-				}
-				if (bit === 1) coords_index++;
+			const index = postcodeToIndex(postcode);
+
+			// Count postcodes with coordinate in current thousand block
+			for (let i = offset_index; i < index; i++) {
+				if (bitmapBits[i] === 1) coords_index++;
 			}
+
+			const bit = bitmapBits[index];
+			if (!bit) {
+				return null;
+			}
+			console.log({bitmap_index: index, postcode: postcode, value: bit, coords_index: bit ? (offset_validsum + coords_index) : null});
+			const char0 = coordsBytes[(offset_validsum + coords_index)*4 + 0]
+			const char1 = coordsBytes[(offset_validsum + coords_index)*4 + 1]
+			const char2 = coordsBytes[(offset_validsum + coords_index)*4 + 2]
+			const char3 = coordsBytes[(offset_validsum + coords_index)*4 + 3]
+			return 'u1' + String.fromCharCode(char0, char1, char2, char3);
 		}
 
 		const start = performance.now();
