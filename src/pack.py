@@ -2,11 +2,14 @@ import os
 
 if not os.path.isfile('postcodes.csv'):
 	# Generate temp csv file for faster future runs
+	input_file = "cbs_pc6_2024_v1.gpkg"
+	if not os.path.isfile(input_file):
+		raise FileNotFoundError(f'Source file {input_file} does not exist. Please download it.')
+
 	print("Generating temp csv file...")
 	print("  --> Importing geopandas")
 	import geopandas as gpd
 
-	input_file = "cbs_pc6_2024_v1.gpkg"
 	print(f'  --> Reading {input_file}')
 	data = gpd.read_file(input_file, columns=['postcode6', 'geometry'])
 
