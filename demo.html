@@ -117,6 +117,7 @@ Voorbeelden:
 	window.onload = async function() {
 		pcloc = await PostcodeLocaties({
 			basePath: 'src/',
+			debug: true,
 		});
 	};
 
@@ -139,15 +140,11 @@ Voorbeelden:
 		input_el.value = input_postcode;
 		info_el.innerHTML = `postcode: <a href="https://www.openstreetmap.org/search?query=${input_postcode}" target="_blank">${input_postcode}</a>`;
 
-		const start = performance.now();
 		const result = pcloc.lookup(input_postcode);
-		const lookup_ms = performance.now() - start;
-
 		if (result === null) {
 			info_el.innerHTML += ` ❓<br>
 			geohash: unavailable<br>
 			lat, lon: unavailable<br>
-			lookup time: ${lookup_ms} ms
 			`;
 			return;
 		}
@@ -160,7 +157,6 @@ Voorbeelden:
 			geohash: <a href="https://geohash.jorren.nl/#${gh}" target="_blank">${gh}</a><br>
 			lat, lon: <a href="http://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}" target="_blank">${lat}, ${lon}</a>
 			<br>
-			lookup time: ${lookup_ms} ms
 		`;
 	}
 

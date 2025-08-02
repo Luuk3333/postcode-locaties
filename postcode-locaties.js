@@ -10,6 +10,7 @@ async function PostcodeLocaties(options = {}) {
 			uncompressed: "coords.bin",
 		},
 		lookupHistorySize = 10,
+		debug = false,
 	} = options;
 
 	const isGzipSupported = typeof DecompressionStream === "function";
@@ -70,7 +71,8 @@ async function PostcodeLocaties(options = {}) {
 	try {
 		await fetchBinaries();
 
-		const start = performance.now();
+		let start_ms = 0;
+		if (debug) start_ms = performance.now();
 		for (let index = 0; index < 676000; index++) {
 			if (bitmapBits[index + 0*676000]) offset_valid_count['1000s']++;
 			if (bitmapBits[index + 1*676000]) offset_valid_count['2000s']++;
@@ -81,7 +83,7 @@ async function PostcodeLocaties(options = {}) {
 			if (bitmapBits[index + 6*676000]) offset_valid_count['7000s']++;
 			if (bitmapBits[index + 7*676000]) offset_valid_count['8000s']++;
 		}
-		console.log(`Counting valid postcodes took ${performance.now() - start} ms.`);
+		if (debug) console.log(`Counting valid postcodes took ${performance.now() - start_ms} ms.`);
 	} catch (err) {
 		console.error("Failed to initialize PostcodeLocaties.", err);
 		throw err;
@@ -130,7 +132,7 @@ async function PostcodeLocaties(options = {}) {
 		}
 
 		const bit = bitmapBits[index];
-		console.log({bitmap_index: index, postcode: postcode, value: bit, coords_index: bit ? (offset_validsum + coords_index) : null});
+		if (debug) console.log({bitmap_index: index, postcode: postcode, value: bit, coords_index: bit ? (offset_validsum + coords_index) : null});
 		if (!bit) {
 			return null;
 		}
@@ -229,6 +231,9 @@ async function PostcodeLocaties(options = {}) {
 	pcloc.lookupHistory = new LookupHistory(lookupHistorySize);
 
 	pcloc.lookup = ((postcode) => {
+		let start_ms = 0;
+		if (debug) start_ms = performance.now();
+
 		// Return geohash from history if available (can permit to calculate lat/long everytime because geohashToLatLon() is fast)
 		let gh;
 		const historyResult = pcloc.lookupHistory.get(postcode);
@@ -247,6 +252,8 @@ async function PostcodeLocaties(options = {}) {
 			lat,
 			lon
 		};
+
+		if (debug) console.log(`Lookup time: ${performance.now() - start_ms} ms`);
 		return result;
 	});
 
