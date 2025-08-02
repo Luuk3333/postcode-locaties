@@ -236,8 +236,9 @@ async function PostcodeLocaties(options = {}) {
 		}
 
 		const gh = postcodeToGeohash(postcode);
-		const [lat, lon] = geohashToLatLon(gh);
+		if (gh === null) return null;
 
+		const [lat, lon] = geohashToLatLon(gh);
 		const result = {
 			gh,
 			lat,

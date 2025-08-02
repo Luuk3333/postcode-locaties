@@ -142,16 +142,18 @@ Voorbeelden:
 		const start = performance.now();
 		const result = pcloc.lookup(input_postcode);
 		const lookup_ms = performance.now() - start;
-		console.log("Result:", result);
-		const {gh, lat, lon} = result;
 
-		if (gh === null) {
+		if (result === null) {
 			info_el.innerHTML += ` ❓<br>
-				geohash: unavailable<br>
-				lat, lon: unavailable<br>
+			geohash: unavailable<br>
+			lat, lon: unavailable<br>
+			lookup time: ${lookup_ms} ms
 			`;
 			return;
 		}
+
+		console.log("Result:", result);
+		const {gh, lat, lon} = result;
 
 		results(lat, lon);
 		info_el.innerHTML += ` ✔️<br>
