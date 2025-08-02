@@ -115,7 +115,9 @@ Voorbeelden:
 
 	let pcloc;
 	window.onload = async function() {
-		pcloc = await PostcodeLocaties();
+		pcloc = await PostcodeLocaties({
+			basePath: 'src/',
+		});
 	};
 
 	function zoek() {

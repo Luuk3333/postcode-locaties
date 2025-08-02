@@ -1,6 +1,6 @@
 async function PostcodeLocaties(options = {}) {
 	const {
-		basePath = "src/",
+		basePath = "",
 		bitmapFile = {
 			compressed: "bitmap.bin.gz",
 			uncompressed: "bitmap.bin",
