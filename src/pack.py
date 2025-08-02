@@ -94,22 +94,17 @@ for postcode in postcodes:
 if bit_index > 0:
 	bitmap_bytes.append(bits)
 
-with open('bitmap.bin', 'wb') as file:
-	file.write(bitmap_bytes)
-with open('coords.bin', 'wb') as file:
-	file.write(coords_bytes)
+# Compress and write binaries
+import gzip
+def write_bytes(filename, data_bytes):
+    with open(filename, 'wb') as file:
+        file.write(data_bytes)
 
-import os
-def runcmd(cmd):
-	print('\n', cmd)
-	os.system(cmd)
+def write_bytes_gzip(filename, data_bytes):
+    compressed = gzip.compress(data_bytes, compresslevel=9)
+    write_bytes(filename, compressed)
 
-runcmd("ls -lsah bitmap.bin")
-runcmd("gzip --keep --verbose -9 --force bitmap.bin && ls -lsah bitmap.bin.gz")
-runcmd("brotli bitmap.bin --output=bitmap.bin.br --force && ls -lsah bitmap.bin.br")
-# runcmd("zstd bitmap.bin -o bitmap.bin.zst --ultra --force && ls -lsah bitmap.bin.zst")
-
-runcmd("ls -lsah coords.bin")
-runcmd("gzip --keep --verbose -9 --force coords.bin && ls -lsah coords.bin.gz")
-runcmd("brotli coords.bin --output=coords.bin.br --force && ls -lsah coords.bin.br")
-# runcmd("zstd coords.bin -o coords.bin.zst --ultra --force && ls -lsah coords.bin.zst")
+write_bytes('bitmap.bin', bitmap_bytes)
+write_bytes('coords.bin', coords_bytes)
+write_bytes_gzip('bitmap.bin.gz', bitmap_bytes)
+write_bytes_gzip('coords.bin.gz', coords_bytes)
