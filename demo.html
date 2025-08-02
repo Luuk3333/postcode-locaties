@@ -10,21 +10,24 @@
 <h1>Vind rijksmusea</h1>
 <p>Voer een postcode in en krijg te zien welke rijksmusea dichtbij zijn.</p>
 
-<label>Postcode</label>
-<input
-	type="text"
-	id="postcode"
-	placeholder="1234AB"
-	title="Postcode"
-	maxlength="7"
-	size="7"
-	autocomplete="off"
-	autocapitalize="on">
-<button onclick="zoek()" id="zoek">Zoek</button>
-<br>
-<button onclick="demo('1118AP')">Schipholtoren</button>
-<button onclick="demo('3512JE')">Domtoren</button>
-<button onclick="demo('9712GJ')">Martinitoren</button>
+<form>
+	<label for="postcode">Postcode</label>
+	<input
+		type="text"
+		id="postcode"
+		placeholder="1234AB"
+		title="Postcode"
+		maxlength="7"
+		size="7"
+		autofocus
+		autocomplete="off"
+		autocapitalize="on">
+	<button id="zoek" type="submit">Zoek</button>
+	<br>
+	<button onclick="demo('1118AP')">Schipholtoren</button>
+	<button onclick="demo('3512JE')">Domtoren</button>
+	<button onclick="demo('9712GJ')">Martinitoren</button>
+</form>
 
 <div class="info"></div>
 <ul id="results"></ul>
@@ -32,6 +35,11 @@
 <script src=" https://cdn.jsdelivr.net/npm/js-geohash@1.0.0/geohash.min.js "></script>
 <script>
 	const results_el = document.querySelector('#results');
+
+	document.querySelector('form').addEventListener('submit', function(event) {
+		event.preventDefault();
+		zoek();
+	});
 
 	const locaties = [
 		{naam: 'Rijksmuseum Amsterdam', coords: [52.359969,4.885325]},
@@ -146,9 +154,15 @@
 		const input_el = document.querySelector('input#postcode');
 		info_el.innerHTML = '';
 
+		const value = input_el.value.trim();
+		if (value.length === 0) {
+			return;
+		}
+
 		const postcode_regex = new RegExp("^(\\d{4})\\s?([A-Z]{2})$", "gi"); // https://regex101.com/r/2vSYX9/1
-		var match = postcode_regex.exec(input_el.value);
+		var match = postcode_regex.exec(value);
 		if (!match) {
+			info_el.innerHTML = 'Invalid postcode format.';
 			return;
 		}
 		const input_postcode = match[1] + match[2].toUpperCase();
