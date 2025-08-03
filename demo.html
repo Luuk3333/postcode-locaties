@@ -142,6 +142,7 @@ Voorbeelden:
 			info_el.innerHTML = 'Invalid postcode format.';
 			return;
 		}
+
 		const input_postcode = match[1] + (match[2] ? match[2].toUpperCase() : '');
 		input_el.value = input_postcode;
 		info_el.innerHTML = `postcode: <a href="https://www.openstreetmap.org/search?query=${input_postcode}" target="_blank">${input_postcode}</a>`;
@@ -151,7 +152,7 @@ Voorbeelden:
 			info_el.innerHTML += ` ❓<br>
 			geohash: unavailable<br>
 			lat, lon: unavailable<br>
-			lookup time: ${pcloc.debug.lookup_ms} ms
+			lookup time: ${pcloc.debug.lookup_ms} ms ${pcloc.debug.from_history ? '(from history)' : ''}
 			`;
 			return;
 		}
@@ -167,7 +168,7 @@ Voorbeelden:
 		info_el.innerHTML += `<br>
 			lat, lon: <a href="http://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}" target="_blank">${lat}, ${lon}</a>
 			<br>
-			lookup time: ${pcloc.debug.lookup_ms} ms
+			lookup time: ${pcloc.debug.lookup_ms} ms ${pcloc.debug.from_history ? '(from history)' : ''}
 		`;
 	}
 

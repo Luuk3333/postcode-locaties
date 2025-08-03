@@ -60,6 +60,7 @@ async function PostcodeLocaties(options = {}) {
 		pcloc.debug = {
 			counting_ms: null,
 			lookup_ms: null,
+			from_history: null,
 		};
 	}
 
@@ -295,6 +296,7 @@ async function PostcodeLocaties(options = {}) {
 		// Return geohash from history if available (can permit to calculate lat/long everytime because geohashToLatLon() is fast)
 		let result_obj;
 		const historyResult = pcloc.lookupHistory.get(postcode);
+		if (debug) pcloc.debug.from_history = historyResult !== null;
 		if (historyResult) {
 			result_obj = historyResult.value; // Use .value so 'if (historyResult)' doesn't fail when result_obj is null
 		}
