@@ -68,6 +68,15 @@ async function PostcodeLocaties(options = {}) {
 		'8000s': 0,
 	};
 
+	var pcloc = Object();
+
+	if (debug) {
+		pcloc.debug = {
+			counting_ms: null,
+			lookup_ms: null,
+		};
+	}
+
 	try {
 		await fetchBinaries();
 
@@ -83,7 +92,10 @@ async function PostcodeLocaties(options = {}) {
 			if (bitmapBits[index + 6*676000]) offset_valid_count['7000s']++;
 			if (bitmapBits[index + 7*676000]) offset_valid_count['8000s']++;
 		}
-		if (debug) console.log(`Counting valid postcodes took ${performance.now() - start_ms} ms.`);
+		if (debug) {
+			pcloc.debug.counting_ms = performance.now() - start_ms;
+			console.log(`Counting valid postcodes took ${pcloc.debug.counting_ms} ms.`);
+		}
 	} catch (err) {
 		console.error("Failed to initialize PostcodeLocaties.", err);
 		throw err;
@@ -226,8 +238,6 @@ async function PostcodeLocaties(options = {}) {
 		}
 	}
 
-	var pcloc = Object();
-
 	pcloc.lookupHistory = new LookupHistory(lookupHistorySize);
 
 	pcloc.lookup = ((postcode) => {
@@ -244,7 +254,10 @@ async function PostcodeLocaties(options = {}) {
 			geohash = postcodeToGeohash(postcode);
 			pcloc.lookupHistory.add(postcode, geohash);
 		}
-		if (geohash === null) return null;
+		if (geohash === null) {
+			if (debug) pcloc.debug.lookup_ms = performance.now() - start_ms;
+			return null;
+		}
 
 		const [lat, lon] = geohashToLatLon(geohash);
 		const result = {
@@ -253,7 +266,10 @@ async function PostcodeLocaties(options = {}) {
 			lon
 		};
 
-		if (debug) console.log(`Lookup time: ${performance.now() - start_ms} ms`);
+		if (debug) {
+			pcloc.debug.lookup_ms = performance.now() - start_ms;
+			console.log(`Lookup time: ${pcloc.debug.lookup_ms} ms`);
+		}
 		return result;
 	});
 

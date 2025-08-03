@@ -119,6 +119,7 @@ Voorbeelden:
 			basePath: 'src/',
 			debug: true,
 		});
+		info_el.innerHTML = `Counting valid postcodes took ${pcloc.debug.counting_ms} ms.`;
 	};
 
 	function zoek() {
@@ -145,6 +146,7 @@ Voorbeelden:
 			info_el.innerHTML += ` ❓<br>
 			geohash: unavailable<br>
 			lat, lon: unavailable<br>
+			lookup time: ${pcloc.debug.lookup_ms} ms
 			`;
 			return;
 		}
@@ -157,6 +159,7 @@ Voorbeelden:
 			geohash: <a href="https://geohash.jorren.nl/#${geohash}" target="_blank">${geohash}</a><br>
 			lat, lon: <a href="http://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}" target="_blank">${lat}, ${lon}</a>
 			<br>
+			lookup time: ${pcloc.debug.lookup_ms} ms
 		`;
 	}
 
