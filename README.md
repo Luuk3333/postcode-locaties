@@ -2,8 +2,8 @@
 Get lat/lon coordinates of Dutch postcodes completely client-side without API requests.
 
 ## How to use
-### 1. Packing binaries
-The script [`src/pack.py`](src/pack.py) reads a GeoPackage (GPKG) file from CBS and packs the location data into binary files. It creates an intermediate `postcodes.csv` file for faster runs.
+### 1. Packing binary
+The script [`src/pack.py`](src/pack.py) reads a GeoPackage (GPKG) file from CBS and packs the location data into a binary file. It creates an intermediate `postcodes.csv` file for faster runs.
 
 #### 1.1 Source data
 CBS provides postcode data in a GeoPackage (GPKG) file which includes polygons of each postcode. This script reads this data, calculates polygon centroids and outputs an intermediate `postcodes.csv` file.
@@ -23,9 +23,9 @@ Otherwise:
 3. Set `input_file` in [`src/pack.py`](src/pack.py) to match the filename.
 
 
-#### 1.2 Generating binaries
+#### 1.2 Generating binary
 1. Set up virtual env. Install packages with `pip install -r requirements.txt`.
-2. Run `python pack.py`. The data will be stored as two .bin files, along with the same data compressed as two .bin.gz files.
+2. Run `python pack.py`. The binary data will be stored as a `.pack` file and compressed as a `.pack.gz` file.
 
 ### 2. Installation
 1. Include postcode-locaties.js:
@@ -38,7 +38,8 @@ Otherwise:
 let pcloc;
 window.onload = async function() {
     pcloc = await PostcodeLocaties({
-        basePath: 'src/',
+		packUrl: 'https://example.com/postcodes.pack',
+		packGzUrl: 'https://example.com/postcodes.pack.gz',
     });
 };
 ```

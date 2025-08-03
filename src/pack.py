@@ -109,7 +109,5 @@ def write_bytes_gzip(filename, data_bytes):
     compressed = gzip.compress(data_bytes, compresslevel=9)
     write_bytes(filename, compressed)
 
-write_bytes('bitmap.bin', bitmap_bytes)
-write_bytes('coords.bin', coords_bytes)
-write_bytes_gzip('bitmap.bin.gz', bitmap_bytes)
-write_bytes_gzip('coords.bin.gz', coords_bytes)
+write_bytes('postcodes.pack', bitmap_bytes + coords_bytes)
+write_bytes_gzip('postcodes.pack.gz', bitmap_bytes + coords_bytes)

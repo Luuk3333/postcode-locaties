@@ -116,7 +116,8 @@ Voorbeelden:
 	let pcloc;
 	window.onload = async function() {
 		pcloc = await PostcodeLocaties({
-			basePath: 'src/',
+			packUrl: 'src/postcodes.pack',
+			packGzUrl: 'src/postcodes.pack.gz',
 			debug: true,
 		});
 		info_el.innerHTML = `Counting valid postcodes took ${pcloc.debug.counting_ms} ms.`;

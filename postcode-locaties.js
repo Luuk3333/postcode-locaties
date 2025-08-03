@@ -1,22 +1,16 @@
 async function PostcodeLocaties(options = {}) {
 	const {
-		basePath = "",
-		bitmapFile = {
-			compressed: "bitmap.bin.gz",
-			uncompressed: "bitmap.bin",
-		},
-		coordsFile = {
-			compressed: "coords.bin.gz",
-			uncompressed: "coords.bin",
-		},
+		packUrl = 'postcodes.pack',
+		packGzUrl = 'postcodes.pack.gz',
 		lookupHistorySize = 10,
 		debug = false,
 	} = options;
 
 	const isGzipSupported = typeof DecompressionStream === "function";
 
-	let bitmapBits = null;
-	let coordsBytes = null;
+	const bitmapLength = 6084000/8; // 1000AA = 9*10*10*10*26*26 bits
+	let packBytes = null; // all bytes in pack (bitmap + coords)
+	let bitmapBits = null; // extracted bits of bitmap
 
 	async function decompressGzip(arrayBuffer) {
 		const ds = new DecompressionStream("gzip");
@@ -34,23 +28,15 @@ async function PostcodeLocaties(options = {}) {
 	}
 
 	async function fetchBinaries() {
-		let bitmapBytes = null;
-
 		if (isGzipSupported) {
-			[bitmapBytes, coordsBytes] = await Promise.all([
-				fetchBinary(basePath + bitmapFile.compressed, true),
-				fetchBinary(basePath + coordsFile.compressed, true)
-			]);
+			packBytes = await fetchBinary(packGzUrl, true);
 		}
 		else {
-			[bitmapBytes, coordsBytes] = await Promise.all([
-				fetchBinary(basePath + bitmapFile.uncompressed, false),
-				fetchBinary(basePath + coordsFile.uncompressed, false)
-			]);
+			packBytes = await fetchBinary(packUrl, false);
 		}
 
 		bitmapBits = [];
-		for (const byte of bitmapBytes) {
+		for (const byte of packBytes.slice(0, bitmapLength)) {
 			for (let bit = 7; bit >= 0; bit--) {
 				bitmapBits.push((byte >> bit) & 1);
 			}
@@ -148,10 +134,10 @@ async function PostcodeLocaties(options = {}) {
 		if (!bit) {
 			return null;
 		}
-		const char0 = coordsBytes[(offset_validsum + coords_index)*4 + 0]
-		const char1 = coordsBytes[(offset_validsum + coords_index)*4 + 1]
-		const char2 = coordsBytes[(offset_validsum + coords_index)*4 + 2]
-		const char3 = coordsBytes[(offset_validsum + coords_index)*4 + 3]
+		const char0 = packBytes[bitmapLength + (offset_validsum + coords_index)*4 + 0]
+		const char1 = packBytes[bitmapLength + (offset_validsum + coords_index)*4 + 1]
+		const char2 = packBytes[bitmapLength + (offset_validsum + coords_index)*4 + 2]
+		const char3 = packBytes[bitmapLength + (offset_validsum + coords_index)*4 + 3]
 		return 'u1' + String.fromCharCode(char0, char1, char2, char3);
 	}
 
