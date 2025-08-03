@@ -132,13 +132,13 @@ Voorbeelden:
 			return;
 		}
 
-		const postcode_regex = new RegExp("^(\\d{4})\\s?([A-Z]{2})$", "gi"); // https://regex101.com/r/2vSYX9/1
+		const postcode_regex = new RegExp("^(\\d{4})\\s?([A-Z]{2})?$", "gi"); // https://regex101.com/r/UsIRBE/1
 		var match = postcode_regex.exec(value);
 		if (!match) {
 			info_el.innerHTML = 'Invalid postcode format.';
 			return;
 		}
-		const input_postcode = match[1] + match[2].toUpperCase();
+		const input_postcode = match[1] + (match[2] ? match[2].toUpperCase() : '');
 		input_el.value = input_postcode;
 		info_el.innerHTML = `postcode: <a href="https://www.openstreetmap.org/search?query=${input_postcode}" target="_blank">${input_postcode}</a>`;
 
@@ -157,7 +157,10 @@ Voorbeelden:
 
 		results(lat, lon);
 		info_el.innerHTML += ` ✔️<br>
-			geohash: <a href="https://geohash.jorren.nl/#${geohash}" target="_blank">${geohash}</a><br>
+			geohash:
+		`;
+		info_el.innerHTML += (geohash === null) ? 'null' : `<a href="https://geohash.jorren.nl/#${geohash}" target="_blank">${geohash}</a>`;
+		info_el.innerHTML += `<br>
 			lat, lon: <a href="http://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}" target="_blank">${lat}, ${lon}</a>
 			<br>
 			lookup time: ${pcloc.debug.lookup_ms} ms

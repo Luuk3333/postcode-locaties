@@ -89,6 +89,7 @@ async function PostcodeLocaties(options = {}) {
 
 	function postcodeToIndex(postcode) {
 		const digits = parseInt(postcode.toUpperCase().slice(0, 4), 10);
+
 		const firstLetter = postcode[4];
 		const secondLetter = postcode[5];
 
@@ -104,14 +105,7 @@ async function PostcodeLocaties(options = {}) {
 		return index;
 	}
 
-	function postcodeToGeohash(postcode) {
-		// Skip postcodes lower than 1000AA like 0123AB
-		if (postcode[0] === '0') {
-			return null;
-		}
-
-		// TODO: accommodate PC4 input
-
+	function calculateCoordsIndex(postcode, index) {
 		// Sum count of prior valid postcodes
 		const offset_digit = parseInt(postcode[0], 10);
 		let offset_validsum = 0;
@@ -121,7 +115,6 @@ async function PostcodeLocaties(options = {}) {
 			offset_validsum += offset_valid_count[key] || 0;
 		}
 
-		const index = postcodeToIndex(postcode);
 		let coords_index = 0;
 
 		// Count postcodes with coordinate in current thousand block
@@ -129,16 +122,85 @@ async function PostcodeLocaties(options = {}) {
 			if (bitmapBits[i] === 1) coords_index++;
 		}
 
-		const bit = bitmapBits[index];
-		if (debug) console.log({bitmap_index: index, postcode: postcode, value: bit, coords_index: bit ? (offset_validsum + coords_index) : null});
-		if (!bit) {
-			return null;
-		}
+		return [coords_index, offset_validsum];
+	}
+
+	function getGeohashFromPack(coords_index, offset_validsum) {
 		const char0 = packBytes[bitmapLength + (offset_validsum + coords_index)*4 + 0]
 		const char1 = packBytes[bitmapLength + (offset_validsum + coords_index)*4 + 1]
 		const char2 = packBytes[bitmapLength + (offset_validsum + coords_index)*4 + 2]
 		const char3 = packBytes[bitmapLength + (offset_validsum + coords_index)*4 + 3]
 		return 'u1' + String.fromCharCode(char0, char1, char2, char3);
+	}
+
+	function postcode6ToGeohash(postcode) {
+		const index = postcodeToIndex(postcode);
+		const [coords_index, offset_validsum] = calculateCoordsIndex(postcode, index);
+
+		const bit = bitmapBits[index];
+		if (debug) console.log({bitmap_index: index, postcode: postcode, value: bit, coords_index: bit ? (offset_validsum + coords_index) : null});
+		if (!bit) {
+			return null;
+		}
+		return getGeohashFromPack(coords_index, offset_validsum);
+	}
+
+	function postcode4ToGeohashes(postcode) {
+		const digits = parseInt(postcode.toUpperCase().slice(0, 4), 10);
+		const index = (digits - 1000) * 676;
+		let [coords_index, offset_validsum] = calculateCoordsIndex(postcode, index);
+
+		let geohashes = [];
+		for (let lettersOffset = 0; lettersOffset < 26*26; lettersOffset++) {
+			const bit = bitmapBits[index + lettersOffset];
+			if (!bit) continue;
+
+			const geohash = getGeohashFromPack(coords_index, offset_validsum);
+			geohashes.push(geohash);
+			coords_index++;
+		}
+		return geohashes;
+	}
+
+	function postcodeToLatLon(postcode) {
+		// Skip postcodes lower than 1000AA like 0123AB
+		if (postcode[0] === '0') {
+			return null;
+		}
+
+		if (postcode.length === 4) {
+			const geohashes = postcode4ToGeohashes(postcode);
+			if (geohashes.length === 0) return null;
+
+			// Get all coordinates
+			let latitudes = [];
+			let longitudes = [];
+			geohashes.forEach((geohash) => {
+				const [lat, lon] = geohashToLatLon(geohash);
+				latitudes.push(lat);
+				longitudes.push(lon);
+			});
+
+			// Calculate average of coordinate
+			const sumLat = latitudes.reduce((acc, val) => acc + val, 0);
+			const sumLon = longitudes.reduce((acc, val) => acc + val, 0);
+			const avgLat = sumLat / latitudes.length;
+			const avgLon = sumLon / longitudes.length;
+			return {
+				geohash: null,
+				lat: avgLat,
+				lon: avgLon,
+			}
+		}
+
+		const geohash = postcode6ToGeohash(postcode);
+		if (geohash === null) return null;
+		const [lat, lon] = geohashToLatLon(geohash);
+		return {
+			geohash,
+			lat,
+			lon,
+		};
 	}
 
 	/**
@@ -231,32 +293,25 @@ async function PostcodeLocaties(options = {}) {
 		if (debug) start_ms = performance.now();
 
 		// Return geohash from history if available (can permit to calculate lat/long everytime because geohashToLatLon() is fast)
-		let geohash;
+		let result_obj;
 		const historyResult = pcloc.lookupHistory.get(postcode);
 		if (historyResult) {
-			geohash = historyResult.value; // Use .value so 'if (historyResult)' doesn't fail when geohash is null
+			result_obj = historyResult.value; // Use .value so 'if (historyResult)' doesn't fail when result_obj is null
 		}
 		else {
-			geohash = postcodeToGeohash(postcode);
-			pcloc.lookupHistory.add(postcode, geohash);
+			result_obj = postcodeToLatLon(postcode);
+			pcloc.lookupHistory.add(postcode, result_obj);
 		}
-		if (geohash === null) {
+		if (result_obj === null) {
 			if (debug) pcloc.debug.lookup_ms = performance.now() - start_ms;
 			return null;
 		}
-
-		const [lat, lon] = geohashToLatLon(geohash);
-		const result = {
-			geohash,
-			lat,
-			lon
-		};
 
 		if (debug) {
 			pcloc.debug.lookup_ms = performance.now() - start_ms;
 			console.log(`Lookup time: ${pcloc.debug.lookup_ms} ms`);
 		}
-		return result;
+		return result_obj;
 	});
 
 	return pcloc;
