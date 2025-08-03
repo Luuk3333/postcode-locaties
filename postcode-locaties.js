@@ -2,7 +2,7 @@ async function PostcodeLocaties(options = {}) {
 	const {
 		packUrl = 'postcodes.pack',
 		packGzUrl = 'postcodes.pack.gz',
-		lookupHistorySize = 10,
+		lookupHistorySize = 100,
 		debug = false,
 	} = options;
 

@@ -55,6 +55,10 @@ Voorbeelden:
 		results_el.innerHTML = '';
 	});
 
+	document.querySelector('input#postcode').addEventListener('keyup', function(event) {
+		zoek();
+	});
+
 	const locaties = [
 		{naam: 'Rijksmuseum Amsterdam', coords: [52.359969,4.885325]},
 		{naam: 'Van Gogh Museum', coords: [52.358461,4.881278]},
