@@ -147,7 +147,7 @@ async function PostcodeLocaties(options = {}) {
 	}
 
 	function postcode4ToGeohashes(postcode) {
-		const digits = parseInt(postcode.toUpperCase().slice(0, 4), 10);
+		const digits = parseInt(postcode.replace(/\s/g,'').toUpperCase().slice(0, 4), 10);
 		const index = (digits - 1000) * 676;
 		let [coords_index, offset_validsum] = calculateCoordsIndex(postcode, index);
 
@@ -320,7 +320,11 @@ async function PostcodeLocaties(options = {}) {
 
 	pcloc.isValid = (postcode) => postcode_regex.test(postcode);
 
-	pcloc.info = ((postcode) => {
+	pcloc.info = ((postcode, options = {}) => {
+		const {
+			includeSpace = true,
+		} = options;
+
 		let result = {
 			isValid: false,
 			postcode: null,
@@ -341,9 +345,9 @@ async function PostcodeLocaties(options = {}) {
 		if (match[2]) {
 			result.letters = match[2]?.toUpperCase();
 		}
-		result.postcode = result.digits + (result.letters || '');
+		result.postcode = result.digits + (includeSpace && result.letters ? ' ' : '') + (result.letters || '');
 		result.type = match[2] ? 'pc6' : 'pc4';
-		result.coordinates = pcloc.lookup(result.postcode);
+		result.coordinates = pcloc.lookup(result.digits + (result.letters || ''));
 		result.isExisting = !!result.coordinates;
 
 		return result;

@@ -18,7 +18,7 @@
 	<input
 		type="text"
 		id="postcode"
-		placeholder="1234AB"
+		placeholder="1234 AB"
 		title="Postcode"
 		maxlength="7"
 		size="7"
@@ -30,9 +30,9 @@
 </form>
 <br>
 Voorbeelden:
-<button onclick="demo('1118AP')">Schipholtoren</button>
-<button onclick="demo('3512JE')">Domtoren</button>
-<button onclick="demo('9712GJ')">Martinitoren</button>
+<button onclick="demo('1118 AP')">Schipholtoren</button>
+<button onclick="demo('3512 JE')">Domtoren</button>
+<button onclick="demo('9712 GJ')">Martinitoren</button>
 
 <hr>
 
@@ -143,6 +143,9 @@ Voorbeelden:
 			return;
 		}
 
+		if (postcode_info.isValid && postcode_info.letters) {
+			input_el.value = postcode_info.postcode;
+		}
 		info_el.innerHTML = `postcode: <a href="https://www.openstreetmap.org/search?query=${postcode_info.postcode}" target="_blank">${postcode_info.postcode}</a>`;
 
 		if (postcode_info.coordinates === null) {
