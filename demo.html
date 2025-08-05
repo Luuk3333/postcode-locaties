@@ -146,7 +146,7 @@ Voorbeelden:
 		if (postcode_info.isValid && postcode_info.letters) {
 			input_el.value = postcode_info.postcode;
 		}
-		info_el.innerHTML = `postcode: <a href="https://www.openstreetmap.org/search?query=${postcode_info.postcode}" target="_blank">${postcode_info.postcode}</a>`;
+		info_el.innerHTML = `postcode: <a href="https://nominatim.openstreetmap.org/ui/search.html?postalcode=${postcode_info.postcode}" target="_blank">${postcode_info.postcode}</a>`;
 
 		if (postcode_info.coordinates === null) {
 			info_el.innerHTML += ` ❓<br>
