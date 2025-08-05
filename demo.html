@@ -136,7 +136,7 @@ Voorbeelden:
 			return;
 		}
 
-		const postcode_info = pcloc.info(value);
+		const postcode_info = pcloc.lookup(value);
 		console.log(postcode_info);
 		if (!postcode_info.isValid) {
 			info_el.innerHTML = 'Invalid postcode format.';

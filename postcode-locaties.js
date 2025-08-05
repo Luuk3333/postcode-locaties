@@ -289,7 +289,7 @@ async function PostcodeLocaties(options = {}) {
 
 	pcloc.lookupHistory = new LookupHistory(lookupHistorySize);
 
-	pcloc.lookup = ((postcode) => {
+	pcloc.getCoordinates = ((postcode) => {
 		let start_ms = 0;
 		if (debug) start_ms = performance.now();
 
@@ -320,7 +320,7 @@ async function PostcodeLocaties(options = {}) {
 
 	pcloc.isValid = (postcode) => postcode_regex.test(postcode);
 
-	pcloc.info = ((postcode, options = {}) => {
+	pcloc.lookup = ((postcode, options = {}) => {
 		const {
 			includeSpace = true,
 		} = options;
@@ -347,11 +347,11 @@ async function PostcodeLocaties(options = {}) {
 		}
 		result.postcode = result.digits + (includeSpace && result.letters ? ' ' : '') + (result.letters || '');
 		result.type = match[2] ? 'pc6' : 'pc4';
-		result.coordinates = pcloc.lookup(result.digits + (result.letters || ''));
+		result.coordinates = pcloc.getCoordinates(result.digits + (result.letters || ''));
 		result.isExisting = !!result.coordinates;
 
 		return result;
-	})
+	});
 
 	return pcloc;
 }
