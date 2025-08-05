@@ -189,18 +189,18 @@ async function PostcodeLocaties(options = {}) {
 			const avgLon = sumLon / longitudes.length;
 			return {
 				geohash: null,
-				lat: avgLat,
-				lon: avgLon,
+				latitude: avgLat,
+				longitude: avgLon,
 			}
 		}
 
 		const geohash = postcode6ToGeohash(postcode);
 		if (geohash === null) return null;
-		const [lat, lon] = geohashToLatLon(geohash);
+		const [latitude, longitude] = geohashToLatLon(geohash);
 		return {
 			geohash,
-			lat,
-			lon,
+			latitude,
+			longitude,
 		};
 	}
 
@@ -315,6 +315,39 @@ async function PostcodeLocaties(options = {}) {
 		}
 		return result_obj;
 	});
+
+	const postcode_regex = new RegExp("^([1-9]\\d{3})\\s?([A-Z]{2})?$", "i"); // https://regex101.com/r/4q8C9Y/1
+
+	pcloc.isValid = (postcode) => postcode_regex.test(postcode);
+
+	pcloc.info = ((postcode) => {
+		let result = {
+			isValid: false,
+			postcode: null,
+			digits: null,
+			letters: null,
+			type: null,
+			coordinates: null,
+			isExisting: false,
+		};
+
+		let match = postcode.trim().match(postcode_regex);
+		if (!match) {
+			return result;
+		}
+
+		result.isValid = true;
+		result.digits = Number(match[1]);
+		if (match[2]) {
+			result.letters = match[2]?.toUpperCase();
+		}
+		result.postcode = result.digits + (result.letters || '');
+		result.type = match[2] ? 'pc6' : 'pc4';
+		result.coordinates = pcloc.lookup(result.postcode);
+		result.isExisting = !!result.coordinates;
+
+		return result;
+	})
 
 	return pcloc;
 }

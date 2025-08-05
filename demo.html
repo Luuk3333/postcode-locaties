@@ -131,24 +131,21 @@ Voorbeelden:
 		results_el.innerHTML = '';
 		info_el.innerHTML = '';
 
-		const value = input_el.value.trim();
-		if (value.length === 0) {
+		const value = input_el.value;
+		if (value.trim().length === 0) {
 			return;
 		}
 
-		const postcode_regex = new RegExp("^(\\d{4})\\s?([A-Z]{2})?$", "gi"); // https://regex101.com/r/UsIRBE/1
-		var match = postcode_regex.exec(value);
-		if (!match) {
+		const postcode_info = pcloc.info(value);
+		console.log(postcode_info);
+		if (!postcode_info.isValid) {
 			info_el.innerHTML = 'Invalid postcode format.';
 			return;
 		}
 
-		const input_postcode = match[1] + (match[2] ? match[2].toUpperCase() : '');
-		input_el.value = input_postcode;
-		info_el.innerHTML = `postcode: <a href="https://www.openstreetmap.org/search?query=${input_postcode}" target="_blank">${input_postcode}</a>`;
+		info_el.innerHTML = `postcode: <a href="https://www.openstreetmap.org/search?query=${postcode_info.postcode}" target="_blank">${postcode_info.postcode}</a>`;
 
-		const result = pcloc.lookup(input_postcode);
-		if (result === null) {
+		if (postcode_info.coordinates === null) {
 			info_el.innerHTML += ` ❓<br>
 			geohash: unavailable<br>
 			lat, lon: unavailable<br>
@@ -157,16 +154,15 @@ Voorbeelden:
 			return;
 		}
 
-		console.log("Result:", result);
-		const {geohash, lat, lon} = result;
+		const {geohash, latitude, longitude} = postcode_info.coordinates;
 
-		results(lat, lon);
+		results(latitude, longitude);
 		info_el.innerHTML += ` ✔️<br>
 			geohash:
 		`;
 		info_el.innerHTML += (geohash === null) ? 'null' : `<a href="https://geohash.jorren.nl/#${geohash}" target="_blank">${geohash}</a>`;
 		info_el.innerHTML += `<br>
-			lat, lon: <a href="http://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}" target="_blank">${lat}, ${lon}</a>
+			latitude, longitude: <a href="http://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}" target="_blank">${latitude}, ${longitude}</a>
 			<br>
 			lookup time: ${pcloc.debug.lookup_ms} ms ${pcloc.debug.from_history ? '(from history)' : ''}
 		`;
@@ -176,7 +172,6 @@ Voorbeelden:
 		document.querySelector('input#postcode').value = postcode;
 		document.querySelector('button#zoek').click();
 	}
-
 </script>
 
 <style>
