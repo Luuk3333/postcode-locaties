@@ -17,8 +17,7 @@ if os.path.isfile(CBS_CSV):
 	header_info["data_source"] = "CBS"
 	print(f'  --> Reading {CBS_CSV}')
 	with open(CBS_CSV) as file:
-		csvreader = csv.reader(file)
-		header = next(csvreader) # skip header
+		csvreader = csv.DictReader(file)
 		rows = list(csvreader)
 elif os.path.isfile(CBS_FILE):
 	header_info["data_source"] = "CBS"
@@ -47,7 +46,7 @@ elif os.path.isfile(CBS_FILE):
 	csv_output.to_csv(CBS_CSV, index=False)
 	print(f"  --> Exported {len(csv_output):,} rows to {CBS_CSV}")
 
-	rows = csv_output.values.tolist()
+	csv_output.to_dict(orient='records')
 else:
 	raise FileNotFoundError("Error: No input file found. Please download it. Exiting..")
 
@@ -72,14 +71,20 @@ header_bytes = struct.pack(
 print(f'Loaded {len(rows):,} postcodes.')
 
 for row in rows:
-	if not str(row[1]).startswith('5'):
+	if not str(row['lat']).startswith('5'):
 		raise ValueError("Error: a latitude does not start with '5'!", row)
-	if not len(str(row[1]).split('.')[0]) == 2:
+	if not len(str(row['lat']).split('.')[0]) == 2:
 		raise ValueError("Error: a latitude does not have 2 digits before decimal!", row)
-	if not len(str(row[2]).split('.')[0]) == 1:
+	if not len(str(row['lon']).split('.')[0]) == 1:
 		raise ValueError("Error: a longitude does not have 1 digit before decimal!", row)
 
-rows_dict = {item[0]: item[1:] for item in rows}
+rows_dict = {
+    row['postcode6']: {
+        'lat': row['lat'],
+        'lon': row['lon']
+    }
+    for row in rows
+}
 
 ALPHABET = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 postcodes = []
@@ -109,7 +114,7 @@ for postcode in postcodes:
 
 		# Add the 4-char string for valid postcode
 		row = rows_dict.get(postcode)
-		lat,lon = row[0], row[1]
+		lat, lon = row['lat'], row['lon']
 		hash = geohash.encode(float(lat), float(lon), precision=6)[2:]
 		coords_bytes.extend(hash.encode('ascii'))
 
