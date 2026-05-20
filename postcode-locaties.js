@@ -6,11 +6,15 @@ async function PostcodeLocaties(options = {}) {
 		debug = false,
 	} = options;
 
+	const PACK_VERSION = "1"; // expected version
+
 	const isGzipSupported = typeof DecompressionStream === "function";
 
+	const headerLength = 64;
 	const bitmapLength = 6084000/8; // 1000AA = 9*10*10*10*26*26 bits
 	let packBytes = null; // all bytes in pack (bitmap + coords)
 	let bitmapBits = null; // extracted bits of bitmap
+	let packInfo = {}; // decoded pack header
 
 	async function decompressGzip(arrayBuffer) {
 		const ds = new DecompressionStream("gzip");
@@ -52,7 +56,7 @@ async function PostcodeLocaties(options = {}) {
 		}
 
 		bitmapBits = [];
-		for (const byte of packBytes.slice(0, bitmapLength)) {
+		for (const byte of packBytes.slice(headerLength, headerLength + bitmapLength)) {
 			for (let bit = 7; bit >= 0; bit--) {
 				bitmapBits.push((byte >> bit) & 1);
 			}
@@ -80,9 +84,32 @@ async function PostcodeLocaties(options = {}) {
 		};
 	}
 
+	function decodeHeader(headerBytes) {
+		function decodeString(bytes) {
+			return new TextDecoder("ascii")
+				.decode(bytes)
+				.replace(/\0+$/, ""); // trim padding
+		}
+		return {
+			magic:			decodeString(headerBytes.slice(0, 4)),
+			packVersion:	decodeString(headerBytes.slice(4, 20)),
+			dataCountry:	decodeString(headerBytes.slice(20, 28)),
+			dataSource:		decodeString(headerBytes.slice(28, 36)),
+			dataDate:		decodeString(headerBytes.slice(36, 46)),
+			packDate:		decodeString(headerBytes.slice(46, 56)),
+		}
+	}
+
 	try {
 		await fetchBinaries();
 
+		// Read header
+		const headerBytes = packBytes.slice(0, headerLength);
+		packInfo = decodeHeader(headerBytes);
+		if (packInfo.magic !== "PCPK") throw new Error("Invalid postcode file");
+		if (packInfo.packVersion !== PACK_VERSION) throw new Error(`Postcode pack version mismatch: expected ${PACK_VERSION} but found ${packInfo.packVersion}`);
+
+		// Calculate valid postcodes
 		let start_ms = 0;
 		if (debug) start_ms = performance.now();
 		for (let index = 0; index < 676000; index++) {
@@ -143,10 +170,10 @@ async function PostcodeLocaties(options = {}) {
 	}
 
 	function getGeohashFromPack(coords_index, offset_validsum) {
-		const char0 = packBytes[bitmapLength + (offset_validsum + coords_index)*4 + 0]
-		const char1 = packBytes[bitmapLength + (offset_validsum + coords_index)*4 + 1]
-		const char2 = packBytes[bitmapLength + (offset_validsum + coords_index)*4 + 2]
-		const char3 = packBytes[bitmapLength + (offset_validsum + coords_index)*4 + 3]
+		const char0 = packBytes[headerLength + bitmapLength + (offset_validsum + coords_index)*4 + 0]
+		const char1 = packBytes[headerLength + bitmapLength + (offset_validsum + coords_index)*4 + 1]
+		const char2 = packBytes[headerLength + bitmapLength + (offset_validsum + coords_index)*4 + 2]
+		const char3 = packBytes[headerLength + bitmapLength + (offset_validsum + coords_index)*4 + 3]
 		return 'u1' + String.fromCharCode(char0, char1, char2, char3);
 	}
 
@@ -368,6 +395,10 @@ async function PostcodeLocaties(options = {}) {
 
 		return result;
 	});
+
+	pcloc.packInfo = (() => {
+		return packInfo;
+	})
 
 	return pcloc;
 }

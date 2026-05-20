@@ -1,17 +1,32 @@
 import os
+import csv
 
-if not os.path.isfile('postcodes.csv'):
-	# Generate temp csv file for faster future runs
-	input_file = "cbs_pc6_2024_v1.gpkg"
-	if not os.path.isfile(input_file):
-		raise FileNotFoundError(f'Source file {input_file} does not exist. Please download it.')
+header_info = {
+	"pack_version": "1",
+	"data_country": 'NL',
+	"data_date": '2025-03-26',
+}
 
-	print("Generating temp csv file...")
+# Possible data sources
+CBS_FILE = 'cbs_pc6_2024_v1.gpkg'
+CBS_CSV = CBS_FILE + '.csv'
+
+rows = []
+
+if os.path.isfile(CBS_CSV):
+	header_info["data_source"] = "CBS"
+	print(f'  --> Reading {CBS_CSV}')
+	with open(CBS_CSV) as file:
+		csvreader = csv.reader(file)
+		header = next(csvreader) # skip header
+		rows = list(csvreader)
+elif os.path.isfile(CBS_FILE):
+	header_info["data_source"] = "CBS"
 	print("  --> Importing geopandas")
 	import geopandas as gpd
 
-	print(f'  --> Reading {input_file}')
-	data = gpd.read_file(input_file, columns=['postcode6', 'geometry'])
+	print(f'  --> Reading {CBS_FILE}')
+	data = gpd.read_file(CBS_FILE, columns=['postcode6', 'geometry'])
 
 	print(data.head(1))
 	print("Original CRS:", data.crs) # Expecting EPSG:28992 (Rijksdriehoeksmeting)
@@ -26,31 +41,42 @@ if not os.path.isfile('postcodes.csv'):
 	data_centroids['lat'] = centroids_wgs84.geometry.y
 	data_centroids['lon'] = centroids_wgs84.geometry.x
 
-	output_csv = "postcodes.csv"
-	print(f'  --> Writing to {output_csv}')
+	# Generate temp csv file for faster future runs
+	print(f'  --> Writing to {CBS_CSV}')
 	csv_output = data_centroids[['postcode6', 'lat', 'lon']]
-	csv_output.to_csv(output_csv, index=False)
+	csv_output.to_csv(CBS_CSV, index=False)
+	print(f"  --> Exported {len(csv_output):,} rows to {CBS_CSV}")
 
-	print(f"  --> Exported {len(csv_output):,} rows to {output_csv}")
+	rows = csv_output.values.tolist()
+else:
+	raise FileNotFoundError("Error: No input file found. Please download it. Exiting..")
 
-import csv
 from tqdm import tqdm
 import geohash
 from bitarray import bitarray
+import struct
+import datetime
 
-with open('postcodes.csv') as csvfile:
-	csvreader = csv.reader(csvfile)
-	header = next(csvreader) # skip header
-	rows = list(csvreader)
+# Compile header
+header_bytes = struct.pack(
+	"<4s16s8s8s10s10s8s",
+	b"PCPK",
+	header_info["pack_version"].encode("ascii").ljust(16, b'\x00'),
+	header_info["data_country"].encode("ascii"),
+	header_info["data_source"].encode("ascii"),
+	header_info["data_date"].encode("ascii"),
+	datetime.datetime.now().isoformat()[:10].encode("ascii"),
+	b"\x00" * 8,
+)
 
 print(f'Loaded {len(rows):,} postcodes.')
 
 for row in rows:
-	if not row[1].startswith('5'):
+	if not str(row[1]).startswith('5'):
 		raise ValueError("Error: a latitude does not start with '5'!", row)
-	if not len(row[1].split('.')[0]) == 2:
+	if not len(str(row[1]).split('.')[0]) == 2:
 		raise ValueError("Error: a latitude does not have 2 digits before decimal!", row)
-	if not len(row[2].split('.')[0]) == 1:
+	if not len(str(row[2]).split('.')[0]) == 1:
 		raise ValueError("Error: a longitude does not have 1 digit before decimal!", row)
 
 rows_dict = {item[0]: item[1:] for item in rows}
@@ -109,5 +135,6 @@ def write_bytes_gzip(filename, data_bytes):
     compressed = gzip.compress(data_bytes, compresslevel=9)
     write_bytes(filename, compressed)
 
-write_bytes('postcodes.pack', bitmap_bytes + coords_bytes)
-write_bytes_gzip('postcodes.pack.gz', bitmap_bytes + coords_bytes)
+all_bytes = header_bytes + bitmap_bytes + coords_bytes
+write_bytes('postcodes.pack', all_bytes)
+write_bytes_gzip('postcodes.pack.gz', all_bytes)
