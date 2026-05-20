@@ -182,6 +182,5 @@ pyrightconfig.json
 *.csv
 
 *.bin
-*.gz
 *.br
 *.bak
