@@ -22,6 +22,9 @@ async function PostcodeLocaties(options = {}) {
 
 	async function fetchBinary(url, isGzip) {
 		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(`Failed to download file: ${url}`);
+		}
 		const buffer = await response.arrayBuffer();
 		const data = isGzip ? await decompressGzip(buffer) : buffer;
 		return new Uint8Array(data);
@@ -29,10 +32,23 @@ async function PostcodeLocaties(options = {}) {
 
 	async function fetchBinaries() {
 		if (isGzipSupported) {
-			packBytes = await fetchBinary(packGzUrl, true);
+			try {
+				packBytes = await fetchBinary(packGzUrl, true);
+			} catch (error) {
+				console.warn(error)
+			}
 		}
-		else {
-			packBytes = await fetchBinary(packUrl, false);
+
+		if (!packBytes) {
+			try {
+				packBytes = await fetchBinary(packUrl, false);
+			} catch (error) {
+				console.warn(error)
+			}
+		}
+
+		if (!packBytes) {
+			throw new Error("Failed to download postcode data.");
 		}
 
 		bitmapBits = [];
