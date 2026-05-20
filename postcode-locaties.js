@@ -255,6 +255,7 @@ async function PostcodeLocaties(options = {}) {
 	 * 
 	 * This file includes the functions refine_interval() and decodeGeoHash() from geohash.js.
 	 * Retrieved from https://github.com/davetroy/geohash-js/blob/master/geohash.js on 2025-08-02.
+	 * Modified on 2026-05-21.
 	 */
 	const BITS = [16, 8, 4, 2, 1];
 	const BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz";
@@ -269,13 +270,14 @@ async function PostcodeLocaties(options = {}) {
 		var lat = []; var lon = [];
 		lat[0] = -90.0;  lat[1] = 90.0;
 		lon[0] = -180.0; lon[1] = 180.0;
-		lat_err = 90.0;  lon_err = 180.0;
+		let lat_err = 90.0;
+		let lon_err = 180.0;
 
-		for (i=0; i<geohash.length; i++) {
-			c = geohash[i];
-			cd = BASE32.indexOf(c);
-			for (j=0; j<5; j++) {
-				mask = BITS[j];
+		for (let i=0; i<geohash.length; i++) {
+			let c = geohash[i];
+			let cd = BASE32.indexOf(c);
+			for (let j=0; j<5; j++) {
+				let mask = BITS[j];
 				if (is_even) {
 					lon_err /= 2;
 					refine_interval(lon, cd, mask);
